@@ -11,8 +11,10 @@ Provider Requirements:
 ## Input Variables
 * `activation_policy` (default `"ALWAYS"`): The activation policy for the master instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`.
 * `admin_user` (default `"root"`): The user used for the db connection to create new users
-* `admin_user_crypto_key` (required): The KMS key used to encrypt the admin user password
-* `admin_user_password_cipher` (required): KMS encrypted password for the admin user
+* `admin_user_crypto_key` (required): The KMS key used to encrypt the admin user password. You can choose to provide a Secret Manager secret instead using the `admin_user_password_secret` variable
+* `admin_user_password_cipher` (required): KMS encrypted password for the admin user. You can choose to provide a Secret Manager secret instead using the `admin_user_password_secret` variable
+* `admin_user_password_secret` (required): Secret Manager Secret reference for the Admin user password. You can choose to provide a KMS crypto key and Cipher instead.
+* `admin_user_password_secret_version` (required): Optional version to be used if a Secret Manager Secret is provided for the Admin user password.
 * `authorized_gae_applications` (required): The list of authorized App Engine project names
 * `availability_type` (required): The availability type for the master instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`.
 * `backup_configuration` (required): The backup configuration block of the Cloud SQL resources
@@ -84,11 +86,12 @@ See [more details](https://www.terraform.io/docs/providers/google/r/sql_database
 * `google_sql_database_instance.failover` from `google`
 * `google_sql_database_instance.master` from `google`
 * `google_sql_database_instance.read` from `google`
-* `google_sql_user.admin_user` from `google`
+* `google_sql_user.admin_user_kms` from `google`
 * `random_id.rid` from `random`
 
 ## Data Resources
 * `data.google_kms_secret.admin_password` from `google`
+* `data.google_secret_manager_secret_version.admin_password` from `google`
 
 ## Creating a new release
 After adding your changed and committing the code to GIT, you will need to add a new tag.
