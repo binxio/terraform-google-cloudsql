@@ -157,13 +157,27 @@ variable "admin_user" {
 }
 
 variable "admin_user_password_cipher" {
-  description = "KMS encrypted password for the admin user"
+  description = "KMS encrypted password for the admin user. You can choose to provide a Secret Manager secret instead using the `admin_user_password_secret` variable"
   type        = string
+  default     = ""
 }
 
 variable "admin_user_crypto_key" {
-  description = "The KMS key used to encrypt the admin user password"
+  description = "The KMS key used to encrypt the admin user password. You can choose to provide a Secret Manager secret instead using the `admin_user_password_secret` variable"
   type        = string
+  default     = ""
+}
+
+variable "admin_user_password_secret" {
+  description = "Secret Manager Secret reference for the Admin user password. You can choose to provide a KMS crypto key and Cipher instead."
+  type        = string
+  default     = ""
+}
+
+variable "admin_user_password_secret_version" {
+  description = "Optional version to be used if a Secret Manager Secret is provided for the Admin user password."
+  type        = string
+  default     = null
 }
 
 // Read Replicas

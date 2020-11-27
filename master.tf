@@ -69,13 +69,27 @@ resource "google_sql_database" "map" {
   collation = each.value.collation
 }
 
+data "google_secret_manager_secret_version" "admin_password" {
+  for_each = length(var.admin_user_password_secret) > 0 ? toset(["secret"]) : []
+
+  secret  = var.admin_user_password_secret
+  version = var.admin_user_password_secret_version
+}
+
 data "google_kms_secret" "admin_password" {
+  for_each = length(var.admin_user_crypto_key) > 0 ? toset(["kms"]) : []
+
   crypto_key = var.admin_user_crypto_key
   ciphertext = var.admin_user_password_cipher
 }
 
-resource "google_sql_user" "admin_user" {
-  name     = var.admin_user
+resource "google_sql_user" "admin_user_kms" {
+  for_each = merge(
+    { for key, value in data.google_kms_secret.admin_password : (var.admin_user) => value.plaintext },
+    { for key, value in data.google_secret_manager_secret_version.admin_password : (var.admin_user) => value.secret_data }
+  )
+
   instance = google_sql_database_instance.master.name
-  password = data.google_kms_secret.admin_password.plaintext
+  name     = each.key
+  password = each.value
 }
