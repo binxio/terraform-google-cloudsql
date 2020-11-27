@@ -1,38 +1,37 @@
 resource "google_sql_database_instance" "master" {
   name = local.instance_name
 
-  database_version = local.merged.database_version
-  region           = local.merged.region
+  database_version = local.database_version
+  region           = local.region
 
   settings {
-    disk_autoresize             = true
-    disk_size                   = local.merged.disk_size
-    pricing_plan                = local.merged.pricing_plan
-    tier                        = local.merged.tier
-    activation_policy           = local.merged.activation_policy
-    authorized_gae_applications = local.merged.authorized_gae_applications
-    availability_type           = local.merged.availability_type
-    user_labels                 = merge({ instance_type = "master" }, local.labels)
+    disk_autoresize   = true
+    disk_size         = local.settings.disk_size
+    pricing_plan      = local.settings.pricing_plan
+    tier              = local.settings.tier
+    activation_policy = local.settings.activation_policy
+    availability_type = local.settings.availability_type
+    user_labels       = merge({ instance_type = "master" }, local.labels)
 
     backup_configuration {
-      binary_log_enabled = local.merged.backup_configuration.binary_log_enabled
-      enabled            = local.merged.backup_configuration.enabled
-      start_time         = local.merged.backup_configuration.start_time
+      binary_log_enabled = local.settings.backup_configuration.binary_log_enabled
+      enabled            = local.settings.backup_configuration.enabled
+      start_time         = local.settings.backup_configuration.start_time
     }
 
     maintenance_window {
-      day          = local.merged.maintenance_window.day
-      hour         = local.merged.maintenance_window.hour
-      update_track = local.merged.maintenance_window.update_track
+      day          = local.settings.maintenance_window.day
+      hour         = local.settings.maintenance_window.hour
+      update_track = local.settings.maintenance_window.update_track
     }
 
     ip_configuration {
-      ipv4_enabled    = local.merged.ip_configuration.ipv4_enabled
-      require_ssl     = local.merged.ip_configuration.require_ssl
-      private_network = local.merged.ip_configuration.private_network
+      ipv4_enabled    = local.settings.ip_configuration.ipv4_enabled
+      require_ssl     = local.settings.ip_configuration.require_ssl
+      private_network = local.settings.ip_configuration.private_network
 
       dynamic "authorized_networks" {
-        for_each = local.merged.ip_configuration.authorized_networks
+        for_each = local.settings.ip_configuration.authorized_networks
         content {
           name  = authorized_networks.value.name
           value = authorized_networks.value.value
@@ -41,7 +40,7 @@ resource "google_sql_database_instance" "master" {
     }
 
     dynamic "database_flags" {
-      for_each = local.merged.database_flags
+      for_each = local.settings.database_flags
       content {
         name  = database_flags.value.name
         value = database_flags.value.value
@@ -61,7 +60,7 @@ resource "google_sql_database_instance" "master" {
 }
 
 resource "google_sql_database" "map" {
-  for_each = { for name, settings in var.databases : name => merge(var.defaults[var.engine].database_defaults, settings) }
+  for_each = { for name, settings in var.databases : name => merge(local.defaults[var.engine].database_defaults, settings) }
 
   name      = each.key
   instance  = google_sql_database_instance.master.name

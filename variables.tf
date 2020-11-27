@@ -47,89 +47,59 @@ variable "region" {
   default     = "europe-west4"
 }
 
-variable "disk_size" {
-  description = "The disk size for the master instance"
-  type        = number
-  default     = 10
-}
-variable "pricing_plan" {
-  description = "The pricing plan for the master instance."
-  type        = string
-  default     = "PER_USE"
-}
-variable "tier" {
-  description = "The tier for the master instance."
-  type        = string
-  default     = "db-n1-standard-1"
-}
-variable "activation_policy" {
-  description = "The activation policy for the master instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`."
-  type        = string
-  default     = "ALWAYS"
-}
-variable "authorized_gae_applications" {
-  description = "The list of authorized App Engine project names"
-  type        = list(string)
-  default     = []
-}
-variable "availability_type" {
-  description = "The availability type for the master instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`."
-  type        = string
-  default     = null
-}
 
-variable "maintenance_window" {
-  description = "The maintenance_window configuration."
-  type = object({
-    day          = number
-    hour         = number
-    update_track = string
-  })
-  default = {
-    day          = 4
-    hour         = 10
-    update_track = "stable"
-  }
-}
-
-variable "ip_configuration" {
-  description = "The ip configuration for the master instances."
-  default = {
-    ipv4_enabled        = false
-    require_ssl         = true
-    private_network     = null
-    authorized_networks = []
-  }
-}
-
-variable "database_flags" {
-  description = "The database flags for the master instance. See [more details](https://cloud.google.com/sql/docs/mysql/flags)"
-  type = list(object({
-    name  = string
-    value = string
-  }))
-  default = []
-}
-
-variable "backup_configuration" {
+variable "settings" {
   description = <<EOF
-The backup configuration block of the Cloud SQL resources
-This argument will be passed through the master instance directrly.
-
-See [more details](https://www.terraform.io/docs/providers/google/r/sql_database_instance.html).
+Configuration object of the settings to be used for the master instance:
+  * `activation_policy` The activation policy for the master instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`.
+  * `availability_type` The availability type for the master instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`.
+  * `disk_size`
+  * `pricing_plan`
+  * `tier`
+  * `user_labels`
+	* `maintenance_window` Configuration object for the maintenance_window
+	* `ip_configuration` Configuration object for the ip configuration
+  * `database_flags` The database flags for the instance. See [more details](https://cloud.google.com/sql/docs/mysql/flags)
+  * `backup_configuration` The backup configuration block of the Cloud SQL resources. This argument will be passed through the master instance directly.  See [more details](https://www.terraform.io/docs/providers/google/r/sql_database_instance.html).
 EOF
-  default     = {}
+
+  type    = any
+  default = null
 }
 
-variable "defaults" {
+variable "settings_defaults" {
   description = "Override defaults provided by the module itself"
-  default     = {}
-}
+  type = object({
+    activation_policy = string
+    availability_type = string
+    disk_size         = number
+    pricing_plan      = string
+    tier              = string
+    user_labels       = map(string)
 
-variable "user_labels" {
-  description = "The key/value labels for the master instances."
-  type        = map(string)
-  default     = {}
+    maintenance_window = object({
+      day          = number
+      hour         = number
+      update_track = string
+    })
+    ip_configuration = object({
+      ipv4_enabled        = bool
+      require_ssl         = bool
+      private_network     = string
+      authorized_networks = list(string)
+    })
+    database_flags = list(object({
+      name  = string
+      value = string
+    }))
+    backup_configuration = object({
+      binary_log_enabled             = bool
+      enabled                        = bool
+      start_time                     = string
+      point_in_time_recovery_enabled = bool
+    })
+  })
+  default = null
 }
 
 variable "databases" {
@@ -192,75 +162,47 @@ variable "read_replica_configuration" {
   default     = {}
 }
 
-variable "read_replica_pricing_plan" {
-  description = "The pricing plan for the master instance."
-  type        = string
-  default     = "PER_USE"
-}
-variable "read_replica_tier" {
-  description = "The tier for the master instance."
-  type        = string
-  default     = "db-n1-standard-1"
-}
-variable "read_replica_activation_policy" {
-  description = "The activation policy for the master instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`."
-  type        = string
-  default     = "ALWAYS"
-}
-variable "read_replica_authorized_gae_applications" {
-  description = "The list of authorized App Engine project names"
-  type        = list(string)
-  default     = []
-}
-variable "read_replica_availability_type" {
-  description = "The availability type for the master instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`."
-  type        = string
-  default     = null
+variable "read_replica_settings" {
+  description = <<EOF
+Configuration object of the settings to be used for the read replica instance:
+  * `activation_policy` The activation policy for the read replica instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`.
+  * `availability_type` The availability type for the read replica instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`.
+  * `pricing_plan`
+  * `tier`
+	* `maintenance_window` Configuration object for the maintenance_window
+	* `ip_configuration` Configuration object for the ip configuration
+  * `database_flags` The database flags for the instance. See [more details](https://cloud.google.com/sql/docs/mysql/flags)
+EOF
+
+  type    = any
+  default = null
 }
 
-variable "read_replica_maintenance_window" {
-  description = "The maintenance_window configuration."
+variable "read_replica_settings_defaults" {
+  description = "Override defaults provided by the module itself"
   type = object({
-    day          = number
-    hour         = number
-    update_track = string
+    activation_policy = string
+    availability_type = string
+    pricing_plan      = string
+    tier              = string
+
+    maintenance_window = object({
+      day          = number
+      hour         = number
+      update_track = string
+    })
+    ip_configuration = object({
+      ipv4_enabled        = bool
+      require_ssl         = bool
+      private_network     = string
+      authorized_networks = list(string)
+    })
+    database_flags = list(object({
+      name  = string
+      value = string
+    }))
   })
-  default = {
-    day          = 4
-    hour         = 10
-    update_track = "stable"
-  }
-}
-
-variable "read_replica_ip_configuration" {
-  description = "The ip configuration for the master instances."
-  default = {
-    ipv4_enabled        = false
-    require_ssl         = true
-    private_network     = null
-    authorized_networks = []
-  }
-}
-
-variable "read_replica_database_flags" {
-  description = "The database flags for the master instance. See [more details](https://cloud.google.com/sql/docs/mysql/flags)"
-  type = list(object({
-    name  = string
-    value = string
-  }))
-  default = []
-}
-
-variable "read_replica_crash_safe_replication" {
-  description = "The crash safe replication is to indicates when crash-safe replication flags are enabled."
-  type        = bool
-  default     = true
-}
-
-variable "read_replica_replication_type" {
-  description = "The replication type for read replica instances. Can be one of ASYNCHRONOUS or SYNCHRONOUS."
-  type        = string
-  default     = "SYNCHRONOUS"
+  default = null
 }
 
 // Failover Replica
@@ -281,73 +223,45 @@ variable "failover_replica_size" {
   default     = 0
 }
 
-variable "failover_replica_pricing_plan" {
-  description = "The pricing plan for the master instance."
-  type        = string
-  default     = "PER_USE"
-}
-variable "failover_replica_tier" {
-  description = "The tier for the master instance."
-  type        = string
-  default     = "db-n1-standard-1"
-}
-variable "failover_replica_activation_policy" {
-  description = "The activation policy for the master instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`."
-  type        = string
-  default     = "ALWAYS"
-}
-variable "failover_replica_authorized_gae_applications" {
-  description = "The list of authorized App Engine project names"
-  type        = list(string)
-  default     = []
-}
-variable "failover_replica_availability_type" {
-  description = "The availability type for the master instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`."
-  type        = string
-  default     = null
+variable "failover_replica_settings" {
+  description = <<EOF
+Configuration object of the settings to be used for the failover replica instance:
+  * `activation_policy` The activation policy for the failover replica instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`.
+  * `availability_type` The availability type for the failover replica instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`.
+  * `pricing_plan`
+  * `tier`
+	* `maintenance_window` Configuration object for the maintenance_window
+	* `ip_configuration` Configuration object for the ip configuration
+  * `database_flags` The database flags for the instance. See [more details](https://cloud.google.com/sql/docs/mysql/flags)
+EOF
+
+  type    = any
+  default = null
 }
 
-variable "failover_replica_maintenance_window" {
-  description = "The maintenance_window configuration."
+variable "failover_replica_settings_defaults" {
+  description = "Override defaults provided by the module itself"
   type = object({
-    day          = number
-    hour         = number
-    update_track = string
+    activation_policy = string
+    availability_type = string
+    pricing_plan      = string
+    tier              = string
+
+    maintenance_window = object({
+      day          = number
+      hour         = number
+      update_track = string
+    })
+    ip_configuration = object({
+      ipv4_enabled        = bool
+      require_ssl         = bool
+      private_network     = string
+      authorized_networks = list(string)
+    })
+    database_flags = list(object({
+      name  = string
+      value = string
+    }))
   })
-  default = {
-    day          = 4
-    hour         = 10
-    update_track = "stable"
-  }
-}
-
-variable "failover_replica_ip_configuration" {
-  description = "The ip configuration for the master instances."
-  default = {
-    ipv4_enabled        = false
-    require_ssl         = true
-    private_network     = null
-    authorized_networks = []
-  }
-}
-
-variable "failover_replica_database_flags" {
-  description = "The database flags for the master instance. See [more details](https://cloud.google.com/sql/docs/mysql/flags)"
-  type = list(object({
-    name  = string
-    value = string
-  }))
-  default = []
-}
-
-variable "failover_replica_crash_safe_replication" {
-  description = "The crash safe replication is to indicates when crash-safe replication flags are enabled."
-  type        = bool
-  default     = true
-}
-
-variable "failover_replica_replication_type" {
-  description = "The replication type for read replica instances. Can be one of ASYNCHRONOUS or SYNCHRONOUS."
-  type        = string
-  default     = "SYNCHRONOUS"
+  default = null
 }

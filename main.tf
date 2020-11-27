@@ -2,7 +2,7 @@ locals {
   owner       = var.owner
   project     = var.project
   environment = var.environment
-  purpose     = local.purpose
+  purpose     = var.purpose
 
   instance_name_no_random = replace(format("%s-%s-%s", local.project, local.environment, lower(local.purpose)), " ", "-")
   instance_name           = format("%s-%s", local.instance_name_no_random, random_id.rid.hex)
@@ -15,13 +15,6 @@ locals {
         collation = ""
         charset   = ""
       }
-      availability_type = null // not available for MySQL
-      backup_configuration = {
-        binary_log_enabled = true
-        enabled            = true
-        start_time         = "03:30"
-      }
-      database_flags = []
     }
 
     postgresql = {
@@ -30,20 +23,101 @@ locals {
         collation = ""
         charset   = ""
       }
-      availability_type = "ZONAL"
-      backup_configuration = {
-        binary_log_enabled = null // not available for postgresql
-        enabled            = true
-        start_time         = "03:30"
-      }
-      database_flags = []
     }
   }
 
-  # Merge defaults with module defaults and user provided variables
-  defaults = merge(local.module_defaults[var.engine], var.defaults)
+  default_ip_configuration = {
+    ipv4_enabled        = false
+    require_ssl         = true
+    private_network     = null
+    authorized_networks = []
+  }
 
-  labels = merge(var.user_labels, {
+  default_maintenance_window = {
+    day          = 4
+    hour         = 10
+    update_track = "stable"
+  }
+
+  module_settings_defaults = {
+    activation_policy    = "ALWAYS"
+    availability_type    = var.engine == "postgresql" ? "ZONAL" : null // not available for mysql
+    disk_size            = 10
+    pricing_plan         = "PER_USE"
+    tier                 = "db-n1-standard-1"
+    user_labels          = {}
+    database_flags       = []
+    maintenance_window   = local.default_maintenance_window
+    ip_configuration     = local.default_ip_configuration
+    backup_configuration = {}
+  }
+
+  module_replica_settings_defaults = {
+    activation_policy  = "ALWAYS"
+    availability_type  = var.engine == "postgresql" ? "ZONAL" : null // not available for mysql
+    disk_size          = 10
+    pricing_plan       = "PER_USE"
+    tier               = "db-n1-standard-1"
+    database_flags     = []
+    maintenance_window = local.default_maintenance_window
+    ip_configuration   = local.default_ip_configuration
+  }
+
+  # Merge defaults with module defaults and user provided variables
+  defaults = local.module_defaults[var.engine]
+  settings_defaults = var.settings_defaults == null ? local.module_settings_defaults : merge(
+    local.module_settings_defaults,
+    var.settings_defaults,
+    {
+      ip_configuration = merge(
+        local.module_settings_defaults.ip_configuration,
+        try(var.settings_defaults.ip_configuration, {})
+      )
+      maintenance_window = merge(
+        local.module_settings_defaults.maintenance_window,
+        try(var.settings_defaults.maintenance_window, {})
+      )
+      backup_configuration = merge(
+        {
+          binary_log_enabled             = var.engine == "mysql" ? true : null      // not available for postgresql
+          point_in_time_recovery_enabled = var.engine == "postgresql" ? true : null // not available for mysql
+          enabled                        = true
+          start_time                     = "03:30"
+        },
+        try(var.settings_defaults.backup_configuration, {})
+      )
+    }
+  )
+  read_replica_settings_defaults = var.read_replica_settings_defaults == null ? local.module_replica_settings_defaults : merge(
+    local.module_replica_settings_defaults,
+    var.read_replica_settings_defaults,
+    {
+      ip_configuration = merge(
+        local.module_replica_settings_defaults.ip_configuration,
+        try(var.read_replica_settings.ip_configuration, {})
+      )
+      maintenance_window = merge(
+        local.module_replica_settings_defaults.maintenance_window,
+        try(var.read_replica_settings.maintenance_window, {})
+      )
+    }
+  )
+  failover_replica_settings_defaults = var.failover_replica_settings_defaults == null ? local.module_replica_settings_defaults : merge(
+    local.module_replica_settings_defaults,
+    var.failover_replica_settings_defaults,
+    {
+      ip_configuration = merge(
+        local.module_replica_settings_defaults.ip_configuration,
+        try(var.failover_replica_settings.ip_configuration, {})
+      )
+      maintenance_window = merge(
+        local.module_replica_settings_defaults.maintenance_window,
+        try(var.failover_replica_settings.maintenance_window, {})
+      )
+    }
+  )
+
+  labels = merge(local.settings.user_labels, {
     "project" = substr(replace(lower(local.project), "/[^\\p{Ll}\\p{Lo}\\p{N}_-]+/", "_"), 0, 63)
     "env"     = substr(replace(lower(local.environment), "/[^\\p{Ll}\\p{Lo}\\p{N}_-]+/", "_"), 0, 63)
     "owner"   = substr(replace(lower(local.owner), "/[^\\p{Ll}\\p{Lo}\\p{N}_-]+/", "_"), 0, 63)
@@ -57,65 +131,21 @@ locals {
   #                                             #
   ###############################################
 
-  # Make sure all mandatory ip_configuration settings are present
-  ip_configuration = merge({
-    ipv4_enabled        = false
-    require_ssl         = true
-    private_network     = null
-    authorized_networks = []
-  }, var.ip_configuration)
+  database_version = coalesce(var.database_version, local.defaults.database_version)
+  region           = var.region
+  settings         = merge(local.settings_defaults, var.settings)
 
-  merged = {
-    database_version = coalesce(var.database_version, local.defaults.database_version)
-    region           = var.region
-
-    disk_size                   = var.disk_size
-    pricing_plan                = var.pricing_plan
-    tier                        = var.tier
-    activation_policy           = var.activation_policy
-    authorized_gae_applications = var.authorized_gae_applications
-    availability_type           = (var.availability_type == null ? local.defaults.availability_type : var.availability_type)
-
-    backup_configuration = merge(local.defaults.backup_configuration, var.backup_configuration)
-    database_flags       = concat(local.defaults.database_flags, var.database_flags)
-    maintenance_window   = var.maintenance_window
-    ip_configuration     = local.ip_configuration
-  }
+  master_instance_name = google_sql_database_instance.master.name
 
   ###############################################
   #                                             #
   # Read replica settings                       #
   #                                             #
   ###############################################
+  read_replica = {
+    settings = merge(local.read_replica_settings_defaults, var.read_replica_settings)
 
-  # Make sure all mandatory ip_configuration settings are present
-  read_replica_ip_configuration = merge({
-    ipv4_enabled        = false
-    require_ssl         = true
-    private_network     = null
-    authorized_networks = []
-  }, var.read_replica_ip_configuration)
-
-  read_replica_merged = {
-    master_instance_name = google_sql_database_instance.master.name
-    database_version     = coalesce(var.database_version, local.defaults.database_version)
-    region               = var.region
-
-    disk_size                   = var.disk_size
-    pricing_plan                = var.read_replica_pricing_plan
-    tier                        = var.read_replica_tier
-    activation_policy           = var.read_replica_activation_policy
-    authorized_gae_applications = var.read_replica_authorized_gae_applications
-    availability_type           = (var.read_replica_availability_type == null ? local.defaults.availability_type : var.read_replica_availability_type)
-
-    crash_safe_replication = var.read_replica_crash_safe_replication
-    replication_type       = var.read_replica_replication_type
-
-    database_flags     = concat(local.defaults.database_flags, var.read_replica_database_flags)
-    maintenance_window = var.read_replica_maintenance_window
-    ip_configuration   = local.read_replica_ip_configuration
-
-    replica_configuration = merge(var.read_replica_configuration, {
+    replica_configuration = merge({
       ca_certificate            = null
       client_certificate        = null
       client_key                = null
@@ -126,7 +156,7 @@ locals {
       ssl_cipher                = null
       username                  = null
       verify_server_certificate = null
-    })
+    }, var.read_replica_configuration)
   }
 
   ###############################################
@@ -135,36 +165,11 @@ locals {
   #                                             #
   ###############################################
 
-  failover_instance_name = google_sql_database_instance.master.name
+  failover_replica = {
+    instance_name = local.instance_name
+    settings      = merge(local.failover_replica_settings_defaults, var.failover_replica_settings)
 
-  # Make sure all mandatory ip_configuration settings are present
-  failover_replica_ip_configuration = merge({
-    ipv4_enabled        = false
-    require_ssl         = true
-    private_network     = null
-    authorized_networks = []
-  }, var.failover_replica_ip_configuration)
-
-  failover_replica_merged = {
-    master_instance_name = google_sql_database_instance.master.name
-    database_version     = coalesce(var.database_version, local.defaults.database_version)
-    region               = var.region
-
-    disk_size                   = var.disk_size
-    pricing_plan                = var.failover_replica_pricing_plan
-    tier                        = var.failover_replica_tier
-    activation_policy           = var.failover_replica_activation_policy
-    authorized_gae_applications = var.failover_replica_authorized_gae_applications
-    availability_type           = (var.failover_replica_availability_type == null ? local.defaults.availability_type : var.failover_replica_availability_type)
-
-    crash_safe_replication = var.failover_replica_crash_safe_replication
-    replication_type       = var.failover_replica_replication_type
-
-    database_flags     = concat(local.defaults.database_flags, var.failover_replica_database_flags)
-    maintenance_window = var.failover_replica_maintenance_window
-    ip_configuration   = local.failover_replica_ip_configuration
-
-    replica_configuration = merge(var.failover_replica_configuration, {
+    replica_configuration = merge({
       ca_certificate            = null
       client_certificate        = null
       client_key                = null
@@ -175,7 +180,7 @@ locals {
       ssl_cipher                = null
       username                  = null
       verify_server_certificate = null
-    })
+    }, var.failover_replica_configuration)
   }
 }
 

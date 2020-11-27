@@ -21,6 +21,6 @@ locals {
     #secondary_range_pods   = ! contains(data.google_compute_subnetwork.subnet.secondary_ip_range.*.range_name, format("k8pods-%s", var.purpose)) ? file(format("%sPods secondary range [k8pods-%s] could not be found in subnet [%s]!%s", local.assert_head, var.purpose, var.subnet, local.assert_foot)) : "ok"
     #secondary_range_svc    = ! contains(data.google_compute_subnetwork.subnet.secondary_ip_range.*.range_name, format("k8services-%s", var.purpose)) ? file(format("%sServices secondary range [k8services-%s] could not be found in subnet [%s]!%s", local.assert_head, var.purpose, var.subnet, local.assert_foot)) : "ok"
 
-    ip_configuration_valid = var.ip_configuration.ipv4_enabled == false && var.ip_configuration.private_network == null ? file(format("%sNo private_network provided while ipv4_enabled is false!%s", local.assert_head, local.assert_foot)) : "ok"
+    ip_configuration_valid = local.settings.ip_configuration.ipv4_enabled == false && local.settings.ip_configuration.private_network == null ? file(format("%sNo private_network provided while ipv4_enabled is false!%s", local.assert_head, local.assert_foot)) : "ok"
   }
 }

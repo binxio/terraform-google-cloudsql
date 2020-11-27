@@ -1,6 +1,10 @@
-output "defaults" {
-  value       = local.module_defaults
-  description = "The generic defaults used for MySQL and Postgres specific settings"
+output "settings_defaults" {
+  value       = local.module_settings_defaults
+  description = "The master settings defaults used"
+}
+output "replica_settings_defaults" {
+  value       = local.module_replica_settings_defaults
+  description = "The failover and read replica settings defaults used"
 }
 
 // Master
