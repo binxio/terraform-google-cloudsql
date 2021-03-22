@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.1 (2021-22-03)
+
+* [FIX] Properly pass point_in_time_recovery_enabled backup configuration option.
+
 ## v1.1.0 (2020-11-27)
 
 * Re-organization of variables
