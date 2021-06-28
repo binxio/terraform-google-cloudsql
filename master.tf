@@ -15,9 +15,10 @@ resource "google_sql_database_instance" "master" {
     user_labels       = merge({ instance_type = "master" }, local.labels)
 
     backup_configuration {
-      binary_log_enabled = local.settings.backup_configuration.binary_log_enabled
-      enabled            = local.settings.backup_configuration.enabled
-      start_time         = local.settings.backup_configuration.start_time
+      binary_log_enabled             = local.settings.backup_configuration.binary_log_enabled
+      enabled                        = local.settings.backup_configuration.enabled
+      start_time                     = local.settings.backup_configuration.start_time
+      point_in_time_recovery_enabled = local.settings.backup_configuration.point_in_time_recovery_enabled
     }
 
     maintenance_window {

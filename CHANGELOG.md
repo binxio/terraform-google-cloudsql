@@ -1,11 +1,15 @@
 # Changelog
 
-## v2.0.0 (2021-02-22)
+## v2.0.0 (2021-06-28)
 
 ### Changes
 
 * legacy failover instance has been removed (should use REGIONAL availability_type instead)
 * you can now provide the deletion_protection setting (default true)
+
+## v1.1.1 (2021-03-11)
+
+* [FIX] Properly pass point_in_time_recovery_enabled backup configuration option.
 
 ## v1.1.0 (2020-11-27)
 
