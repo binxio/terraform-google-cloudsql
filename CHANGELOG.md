@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.0 (2021-02-22)
+
+### Changes
+
+* legacy failover instance has been removed (should use REGIONAL availability_type instead)
+* you can now provide the deletion_protection setting (default true)
+
 ## v1.1.0 (2020-11-27)
 
 * Re-organization of variables

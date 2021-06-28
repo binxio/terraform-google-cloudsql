@@ -4,7 +4,7 @@ output "settings_defaults" {
 }
 output "replica_settings_defaults" {
   value       = local.module_replica_settings_defaults
-  description = "The failover and read replica settings defaults used"
+  description = "The read replica settings defaults used"
 }
 
 // Master

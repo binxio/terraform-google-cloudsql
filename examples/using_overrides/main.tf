@@ -26,11 +26,6 @@ module "mysql" {
     }
   ]
 
-  failover_replica_database_flags = [{
-    name  = "log_bin_trust_function_creators"
-    value = "on"
-  }]
-
   ip_configuration = {
     ipv4_enabled    = false
     require_ssl     = true
@@ -47,22 +42,15 @@ module "mysql" {
     ]
   }
 
-  failover_replica_ip_configuration = {
-    ipv4_enabled    = false
-    require_ssl     = true
-    private_network = var.network
-  }
-
   read_replica_ip_configuration = {
     ipv4_enabled    = false
     require_ssl     = true
     private_network = var.network
   }
 
-  tier                  = "db-f1-micro"
-  read_replica_tier     = "db-f1-micro"
-  failover_replica_tier = "db-f1-micro"
-  disk_size             = 10
-  read_replica_size     = 1
+  tier              = "db-f1-micro"
+  read_replica_tier = "db-f1-micro"
+  disk_size         = 10
+  read_replica_size = 1
   //  additional_databases  = ["db_main", "db_main_bananas"]
 }

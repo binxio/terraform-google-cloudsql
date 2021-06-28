@@ -7,7 +7,6 @@ resource "google_sql_database_instance" "read" {
   master_instance_name = local.master_instance_name
 
   replica_configuration {
-    failover_target           = false
     ca_certificate            = local.read_replica.replica_configuration.ca_certificate
     client_certificate        = local.read_replica.replica_configuration.client_certificate
     client_key                = local.read_replica.replica_configuration.client_key

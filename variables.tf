@@ -47,6 +47,11 @@ variable "region" {
   default     = "europe-west4"
 }
 
+variable "deletion_protection" {
+  description = "Whether or not to allow Terraform to destroy the instance. Unless this field is set to false in Terraform state, a terraform destroy or terraform apply command that deletes the instance will fail."
+  type        = bool
+  default     = true
+}
 
 variable "settings" {
   description = <<EOF
@@ -179,67 +184,6 @@ EOF
 }
 
 variable "read_replica_settings_defaults" {
-  description = "Override defaults provided by the module itself"
-  type = object({
-    activation_policy = string
-    availability_type = string
-    pricing_plan      = string
-    tier              = string
-
-    maintenance_window = object({
-      day          = number
-      hour         = number
-      update_track = string
-    })
-    ip_configuration = object({
-      ipv4_enabled        = bool
-      require_ssl         = bool
-      private_network     = string
-      authorized_networks = list(string)
-    })
-    database_flags = list(object({
-      name  = string
-      value = string
-    }))
-  })
-  default = null
-}
-
-// Failover Replica
-variable "failover_replica" {
-  description = "Specify true if the failover instance is required"
-  type        = bool
-  default     = false
-}
-
-variable "failover_replica_configuration" {
-  description = "The replica configuration for the failover replica instance. In order to create a failover instance, need to specify this argument."
-  default     = {}
-}
-
-variable "failover_replica_size" {
-  description = "The size of read replicas"
-  type        = number
-  default     = 0
-}
-
-variable "failover_replica_settings" {
-  description = <<EOF
-Configuration object of the settings to be used for the failover replica instance:
-  * `activation_policy` The activation policy for the failover replica instance. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`.
-  * `availability_type` The availability type for the failover replica instance. This is only used to set up high availability for the PostgreSQL instance. Can be either `ZONAL` or `REGIONAL`.
-  * `pricing_plan`
-  * `tier`
-	* `maintenance_window` Configuration object for the maintenance_window
-	* `ip_configuration` Configuration object for the ip configuration
-  * `database_flags` The database flags for the instance. See [more details](https://cloud.google.com/sql/docs/mysql/flags)
-EOF
-
-  type    = any
-  default = null
-}
-
-variable "failover_replica_settings_defaults" {
   description = "Override defaults provided by the module itself"
   type = object({
     activation_policy = string

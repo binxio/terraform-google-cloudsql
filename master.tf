@@ -1,8 +1,9 @@
 resource "google_sql_database_instance" "master" {
   name = local.instance_name
 
-  database_version = local.database_version
-  region           = local.region
+  database_version    = local.database_version
+  region              = local.region
+  deletion_protection = local.deletion_protection
 
   settings {
     disk_autoresize   = true

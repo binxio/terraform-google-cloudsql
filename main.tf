@@ -102,20 +102,6 @@ locals {
       )
     }
   )
-  failover_replica_settings_defaults = var.failover_replica_settings_defaults == null ? local.module_replica_settings_defaults : merge(
-    local.module_replica_settings_defaults,
-    var.failover_replica_settings_defaults,
-    {
-      ip_configuration = merge(
-        local.module_replica_settings_defaults.ip_configuration,
-        try(var.failover_replica_settings.ip_configuration, {})
-      )
-      maintenance_window = merge(
-        local.module_replica_settings_defaults.maintenance_window,
-        try(var.failover_replica_settings.maintenance_window, {})
-      )
-    }
-  )
 
   labels = merge(local.settings.user_labels, {
     "project" = substr(replace(lower(local.project), "/[^\\p{Ll}\\p{Lo}\\p{N}_-]+/", "_"), 0, 63)
@@ -131,9 +117,10 @@ locals {
   #                                             #
   ###############################################
 
-  database_version = coalesce(var.database_version, local.defaults.database_version)
-  region           = var.region
-  settings         = merge(local.settings_defaults, var.settings)
+  database_version    = coalesce(var.database_version, local.defaults.database_version)
+  region              = var.region
+  settings            = merge(local.settings_defaults, var.settings)
+  deletion_protection = var.deletion_protection
 
   master_instance_name = google_sql_database_instance.master.name
 
@@ -157,30 +144,6 @@ locals {
       username                  = null
       verify_server_certificate = null
     }, var.read_replica_configuration)
-  }
-
-  ###############################################
-  #                                             #
-  # Failover replica settings                   #
-  #                                             #
-  ###############################################
-
-  failover_replica = {
-    instance_name = local.instance_name
-    settings      = merge(local.failover_replica_settings_defaults, var.failover_replica_settings)
-
-    replica_configuration = merge({
-      ca_certificate            = null
-      client_certificate        = null
-      client_key                = null
-      connect_retry_interval    = 60
-      dump_file_path            = null
-      master_heartbeat_period   = null
-      password                  = null
-      ssl_cipher                = null
-      username                  = null
-      verify_server_certificate = null
-    }, var.failover_replica_configuration)
   }
 }
 
